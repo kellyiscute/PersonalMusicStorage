@@ -4,13 +4,13 @@ from typing import List
 
 class FileInfo:
 	def __init__(self, id: int, path: str, title: str, artist: str, album: str, bitrate: int, length: int):
-		self.id = id
-		self.path = path
-		self.title = title
-		self.artist = artist
-		self.album = album
-		self.bitrate = bitrate
-		self.length = length
+		self.id: int = id
+		self.path: str = path
+		self.title: str = title
+		self.artist: str = artist
+		self.album: str = album
+		self.bitrate: int = bitrate
+		self.length: int = length
 
 
 def connect():
