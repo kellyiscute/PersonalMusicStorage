@@ -42,7 +42,7 @@ def gen_config():
 	conf = configparser.ConfigParser()
 	conf.add_section('KEYS')
 	conf.add_section('FAIL2BAN')
-	conf['FAIL2BAN'] = '10'
+	conf['FAIL2BAN']['Password Retries'] = '10'
 	conf['KEYS']['Private'] = 'privateKey.pem'
 	conf['KEYS']['Public'] = 'publicKey.pem'
 	conf['DEFAULT']['ShareLib'] = share_lib

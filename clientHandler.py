@@ -10,19 +10,19 @@ from typing import Union
 dispatcher_server_public_key: rsa.PublicKey
 
 # CONSTANTS
-NULL_RESPONSE = bytes(0)
-WHO_ARE_YOU = bytes(1)
-DISPATCHER_SERVER_CONN = bytes(2)  # Should be signed
-CLIENT_CONNECTION = bytes(3)
-AUTHED_CLIENT = bytes(4)
-UNAUTHED_CLIENT = bytes(5)
-CLIENT_AUTH = bytes(6)
-CLIENT_RETRY_AUTH = bytes(7)
-AUTH_BANNED = bytes(403)  # Http response 403 Forbidden
-AUTH_CANCEL = bytes(9)
-AUTH_COMPLETE = bytes(202)  # Http response 202 Accepted
-ACCESS_DENIED = bytes(401)  # Http response 400 Access denied
-LIST_FILE = bytes(10)
+NULL_RESPONSE = bytes((0,))
+WHO_ARE_YOU = bytes((1,))
+DISPATCHER_SERVER_CONN = bytes((2,))  # Should be signed
+CLIENT_CONNECTION = bytes((3,))
+AUTHED_CLIENT = bytes((4,))
+UNAUTHED_CLIENT = bytes((5,))
+CLIENT_AUTH = bytes((6,))
+CLIENT_RETRY_AUTH = bytes((7,))
+AUTH_BANNED = bytes((403,))  # Http response 403 Forbidden
+AUTH_CANCEL = bytes((9,))
+AUTH_COMPLETE = bytes((202,))  # Http response 202 Accepted
+ACCESS_DENIED = bytes((401,))  # Http response 400 Access denied
+LIST_FILE = bytes((10,))
 
 
 def verify_dispatcher_server(sig) -> bool:
