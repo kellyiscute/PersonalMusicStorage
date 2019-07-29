@@ -3,14 +3,26 @@ import confMan
 import threading
 import os
 import rsa
+import typing
 from typing import Union
 
+
 dispatcher_server_public_key: rsa.PublicKey
-NULL_RESPONSE = 0
-WHO_ARE_YOU = 1
-DISPATCHER_SERVER_CONN = 2  # Should be signed
-CLIENT_CONNECTION = 3
-GET_FILE_LIST = 4
+
+# CONSTANTS
+NULL_RESPONSE = bytes(0)
+WHO_ARE_YOU = bytes(1)
+DISPATCHER_SERVER_CONN = bytes(2)  # Should be signed
+CLIENT_CONNECTION = bytes(3)
+AUTHED_CLIENT = bytes(4)
+UNAUTHED_CLIENT = bytes(5)
+CLIENT_AUTH = bytes(6)
+CLIENT_RETRY_AUTH = bytes(7)
+AUTH_BANNED = bytes(403)  # Http response 403 Forbidden
+AUTH_CANCEL = bytes(9)
+AUTH_COMPLETE = bytes(202)  # Http response 202 Accepted
+ACCESS_DENIED = bytes(401)  # Http response 400 Access denied
+LIST_FILE = bytes(10)
 
 
 def verify_dispatcher_server(sig) -> bool:
@@ -33,38 +45,118 @@ def verify_dispatcher_server(sig) -> bool:
 			return False
 
 
-def send_message(sock: socket.socket, message: Union[int, str]):
+def send_message(sock: socket.socket, message: Union[str, bytes]) -> None:
+	"""
+	Send message through socket
+	:param sock: socket obj
+	:param message: message
+	:return: None
+	"""
 	if type(message) == int:
-		sock.send(bytes((message,)))
+		sock.send(message)
 	elif type(message) == str:
 		sock.send(message.encode('utf-8'))
 
 
 class ClientHandler:
 	def __init__(self, conf):
+		"""
+		init a ClientHandler instance
+		:param conf: loaded Config class
+		"""
 		self.config: confMan.Config = conf
 		self.stopIndicator: bool = False
 		self.listenSck: socket.socket = socket.socket(socket.AF_INET)
+		self.banned_ip: typing.List[str] = []
 
-	@staticmethod
-	def client_thread(sock: socket.socket):
-		conn_status = 0
+	def verify_client_password(self, enc_pwd: bytes) -> bool:
+		"""
+		Verify the password that the client provide
+		:param enc_pwd: rsa encrypted password
+		:return:True/False
+		"""
+		try:
+			pwd = rsa.decrypt(enc_pwd, self.config.privateKey)
+			if pwd == self.config.password:
+				return True
+			else:
+				return False
+		except rsa.DecryptionError:
+			return False
+
+	def client_thread(self, sock: socket.socket, remote_addr: str) -> None:
+		"""
+		method for handling connections
+		:param remote_addr: remote address, for fail2ban
+		:param sock: socket obj
+		:return: None
+		"""
+		password_retries = 0
+		conn_type = 0
+		# Ask for connection type
 		send_message(sock, WHO_ARE_YOU)
 		recv = sock.recv(1024)
-		if len(recv) != 1:
+		if len(recv) > 1:
+			# Dispatcher server connection, signed message
 			if verify_dispatcher_server(recv):
-				conn_status = DISPATCHER_SERVER_CONN
+				conn_type = DISPATCHER_SERVER_CONN
 			else:
 				sock.close()
 				return
-		elif(int(recv) == CLIENT_CONNECTION):
-			conn_status = CLIENT_CONNECTION
+		elif int(recv) == CLIENT_CONNECTION:
+			# Client connection
+			conn_type = CLIENT_CONNECTION
+		elif len(recv) == 0:
+			# Connection closed
+			sock.close()
+			return
 
+		# Client Connection Auth
+		if conn_type == CLIENT_CONNECTION:
+			# Ask for password
+			send_message(sock, CLIENT_AUTH)
+		# Wait for response
+		recv = sock.recv(10240)
+		if len(recv) == 0:
+			# Connection closed
+			sock.close()
+			return
+		else:
+			while True:
+				if len(recv) == 1:
+					if recv == AUTH_CANCEL:
+						conn_type = UNAUTHED_CLIENT
+						break
+				else:
+					if self.verify_client_password(recv):
+						conn_type = AUTHED_CLIENT
+						break
+					else:
+						password_retries += 1
+						if self.config.fail2ban != 0 and password_retries >= self.config.fail2ban:
+							# If fail2ban is on (non-zero value), ban if password retries >= fail2ban's count
+							self.banned_ip.append(remote_addr)
+							send_message(sock, AUTH_BANNED)
+							sock.close()
+							break
+						else:
+							send_message(sock, CLIENT_RETRY_AUTH)
 
-	def listen(self):
+		# Command Response
+		while True:
+			# Wait for command
+			recv = sock.recv(10240)
+			if recv == LIST_FILE:
+				pass
+
+	def listen(self) -> None:
+		"""
+		Start listening for connections
+		:return: None
+		"""
 		self.listenSck.bind(('0.0.0.0', self.config.port))
 		self.listenSck.listen()
 		while not self.stopIndicator:
-			(sck, addr) = self.listenSck.accept()
-			t = threading.Thread(target=ClientHandler.client_thread(sck))
+			(sck, addr) = self.listenSck.accept()  # Notice: Thread stuck here
+			t = threading.Thread(target=ClientHandler.client_thread(self, sck, addr[0]))
 			t.start()

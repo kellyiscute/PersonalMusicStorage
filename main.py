@@ -1,4 +1,3 @@
-import rsa
 import os
 import confMan
 

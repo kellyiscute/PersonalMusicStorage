@@ -41,6 +41,8 @@ def gen_config():
 	# Save Config File
 	conf = configparser.ConfigParser()
 	conf.add_section('KEYS')
+	conf.add_section('FAIL2BAN')
+	conf['FAIL2BAN'] = '10'
 	conf['KEYS']['Private'] = 'privateKey.pem'
 	conf['KEYS']['Public'] = 'publicKey.pem'
 	conf['DEFAULT']['ShareLib'] = share_lib
@@ -62,6 +64,7 @@ class Config:
 		self.shareLib: bool = False
 		self.port: int = 0
 		self.password: str = ''
+		self.fail2ban: int = 0
 
 		conf = configparser.ConfigParser()
 		conf.read(file)
@@ -84,6 +87,10 @@ class Config:
 			pk.close()
 		else:
 			raise Exception('One or both key files not found')
+		# Load fail2ban
+		if 'FAIL2BAN' in conf.keys():
+			if 'Password Retries' in conf['FAIL2BAN']:
+				self.fail2ban = conf['FAIL2BAN']['Password Retries']
 		# Load other values
 		if conf['DEFAULT']['ShareLib'] == 'True' or conf['DEFAULT']['ShareLib'] == 'False':
 			self.shareLib = bool(conf['DEFAULT']['ShareLib'])
