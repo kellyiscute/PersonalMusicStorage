@@ -1,5 +1,6 @@
 import sqlite3
 from typing import List
+import random
 
 
 class FileInfo:
@@ -37,3 +38,14 @@ def list_file() -> List[FileInfo]:
 			f = FileInfo(row[0], row[1], row[2], row[3], row[4], row[5], row[6])
 			result.append(f)
 	return result
+
+
+def random_file_info() -> FileInfo:
+	id = random.randint(0,10000000)
+	path = str(random.randint(0,11111111))
+	title = str(random.randint(0,11111111))
+	album = str(random.randint(0,11111111))
+	artist = str(random.randint(0,11111111))
+	bitrate = random.randint(0,10000000)
+	length = random.randint(0,10000000)
+	return FileInfo(id,path,title,album,artist,bitrate,length)

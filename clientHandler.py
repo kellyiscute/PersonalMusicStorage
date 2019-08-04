@@ -4,6 +4,8 @@ import threading
 import os
 import rsa
 import typing
+import dbMan
+import binaryEncoder
 from typing import Union
 
 
@@ -23,6 +25,7 @@ AUTH_CANCEL = bytes((9,))
 AUTH_COMPLETE = bytes((202,))  # Http response 202 Accepted
 ACCESS_DENIED = bytes((401,))  # Http response 400 Access denied
 LIST_FILE = bytes((10,))
+UPLOAD_FILE = bytes((11,))
 
 
 def verify_dispatcher_server(sig) -> bool:
@@ -146,8 +149,31 @@ class ClientHandler:
 		while True:
 			# Wait for command
 			recv = sock.recv(10240)
+
+			# request file list  All clients has permission if shareLib is on
 			if recv == LIST_FILE:
-				pass
+				if self.config.shareLib or conn_type == AUTHED_CLIENT or conn_type == DISPATCHER_SERVER_CONN:
+					file_list = dbMan.list_file()
+					bin_file_list = binaryEncoder.encode_fileinfo(file_list)  # Binary encoded FileList object
+					# send bin size
+					send_message(sock, bytes((bin_file_list.__len__(),)))
+					recv = sock.recv(20)
+					if recv.__len__() == 0:
+						# connection closed
+						sock.close()
+						return
+					else:
+						send_message(sock, bin_file_list)
+				else:
+					send_message(sock, ACCESS_DENIED)
+			# Request file upload
+			elif recv == UPLOAD_FILE:
+				# only authorized client has permission
+				if conn_type == AUTHED_CLIENT:
+
+					pass
+				else:
+					send_message(sock, ACCESS_DENIED)
 
 	def listen(self) -> None:
 		"""

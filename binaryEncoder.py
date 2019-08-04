@@ -3,10 +3,12 @@ from typing import Union, List
 
 # int byteorder: little Endian
 ASCII_END_OF_TEXT = 3
+ASCII_FILE_SEPARATOR = 28
+ASCII_END_OF_TRANSMISSION = 4
 
 
-def encode_fileinfo_element(fi: dbMan.FileInfo) -> bytes:
-	result_list: List[int] = []
+def encode_fileinfo_element(fi: dbMan.FileInfo) -> bytearray:
+	result_list: bytearray = bytearray()
 	# id
 	result_list.extend(fi.id.to_bytes(8, 'little'))
 	# path
@@ -25,21 +27,28 @@ def encode_fileinfo_element(fi: dbMan.FileInfo) -> bytes:
 	result_list.extend(fi.bitrate.to_bytes(8, 'little'))
 	# length
 	result_list.extend(fi.length.to_bytes(8, 'little'))
-	
-	return bytes(result_list)
+	# ASCII_FS
+	result_list.append(ASCII_FILE_SEPARATOR)
 
-def encode_fileinfo(fi: Union[dbMan.FileInfo, List[dbMan.FileInfo]]) -> Union[List[bytes], bytes]:
+	return result_list
+
+
+def encode_fileinfo(fi: Union[dbMan.FileInfo, List[dbMan.FileInfo]]) -> bytes:
 	"""
-	All integer is 8 bytes in length, ETX(003) at every end of string
+	All integer is 8 bytes in length, ETX(003) at every end of string, file separator at every end of file info
 	:param fi: FileInfo class
 	:return: byte encoded data stream, ready to be transferred
 	"""
 	if type(fi) == dbMan.FileInfo:
-		return bytes(encode_fileinfo_element(fi))
+		r = encode_fileinfo_element(fi)
+		r.append(ASCII_END_OF_TRANSMISSION)
+		return bytes(r)
 
 	elif type(fi) == list and type(fi[0]) == dbMan.FileInfo:
-		result: List[bytes] = []
+		result: bytearray = bytearray()
 		for f in fi:
-			result.append(encode_fileinfo_element(f))
+			result.extend(encode_fileinfo_element(f))
+		result.append(ASCII_END_OF_TRANSMISSION)
+		return bytes(result)
 	else:
 		raise Exception('Invalid Type')
