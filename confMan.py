@@ -90,7 +90,7 @@ class Config:
 		# Load fail2ban
 		if 'FAIL2BAN' in conf.keys():
 			if 'Password Retries' in conf['FAIL2BAN']:
-				self.fail2ban = conf['FAIL2BAN']['Password Retries']
+				self.fail2ban = int(conf['FAIL2BAN']['Password Retries'])
 		# Load other values
 		if conf['DEFAULT']['ShareLib'] == 'True' or conf['DEFAULT']['ShareLib'] == 'False':
 			self.shareLib = bool(conf['DEFAULT']['ShareLib'])

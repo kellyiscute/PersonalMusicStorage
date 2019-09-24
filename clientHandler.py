@@ -9,7 +9,7 @@ import binaryEncoder
 from typing import Union
 
 
-dispatcher_server_public_key: rsa.PublicKey
+dispatcher_server_public_key: Union[rsa.PublicKey, None] = None
 
 # CONSTANTS
 NULL_RESPONSE = bytes((0,))
@@ -20,10 +20,10 @@ AUTHED_CLIENT = bytes((4,))
 UNAUTHED_CLIENT = bytes((5,))
 CLIENT_AUTH = bytes((6,))
 CLIENT_RETRY_AUTH = bytes((7,))
-AUTH_BANNED = bytes((403,))  # Http response 403 Forbidden
+AUTH_BANNED = bytes((103,))
 AUTH_CANCEL = bytes((9,))
 AUTH_COMPLETE = bytes((202,))  # Http response 202 Accepted
-ACCESS_DENIED = bytes((401,))  # Http response 400 Access denied
+ACCESS_DENIED = bytes((101,))
 LIST_FILE = bytes((10,))
 UPLOAD_FILE = bytes((11,))
 
@@ -55,7 +55,7 @@ def send_message(sock: socket.socket, message: Union[str, bytes]) -> None:
 	:param message: message
 	:return: None
 	"""
-	if type(message) == int:
+	if type(message) == bytes:
 		sock.send(message)
 	elif type(message) == str:
 		sock.send(message.encode('utf-8'))
@@ -80,7 +80,7 @@ class ClientHandler:
 		"""
 		try:
 			pwd = rsa.decrypt(enc_pwd, self.config.privateKey)
-			if pwd == self.config.password:
+			if pwd.decode() == self.config.password:
 				return True
 			else:
 				return False
@@ -106,7 +106,7 @@ class ClientHandler:
 			else:
 				sock.close()
 				return
-		elif int(recv) == CLIENT_CONNECTION:
+		elif recv == CLIENT_CONNECTION:
 			# Client connection
 			conn_type = CLIENT_CONNECTION
 		elif len(recv) == 0:
@@ -119,31 +119,31 @@ class ClientHandler:
 			# Ask for password
 			send_message(sock, CLIENT_AUTH)
 		# Wait for response
-		recv = sock.recv(10240)
-		if len(recv) == 0:
-			# Connection closed
-			sock.close()
-			return
-		else:
-			while True:
-				if len(recv) == 1:
-					if recv == AUTH_CANCEL:
-						conn_type = UNAUTHED_CLIENT
-						break
+		while True:
+			recv = sock.recv(10240)
+			if len(recv) == 0:
+				# Connection closed
+				sock.close()
+				return
+
+			if len(recv) == 1:
+				if recv == AUTH_CANCEL:
+					conn_type = UNAUTHED_CLIENT
+					break
+			else:
+				if self.verify_client_password(recv):
+					conn_type = AUTHED_CLIENT
+					break
 				else:
-					if self.verify_client_password(recv):
-						conn_type = AUTHED_CLIENT
+					password_retries += 1
+					if self.config.fail2ban != 0 and password_retries >= self.config.fail2ban:
+						# If fail2ban is on (non-zero value), ban if password retries >= fail2ban's count
+						self.banned_ip.append(remote_addr)
+						send_message(sock, AUTH_BANNED)
+						sock.close()
 						break
 					else:
-						password_retries += 1
-						if self.config.fail2ban != 0 and password_retries >= self.config.fail2ban:
-							# If fail2ban is on (non-zero value), ban if password retries >= fail2ban's count
-							self.banned_ip.append(remote_addr)
-							send_message(sock, AUTH_BANNED)
-							sock.close()
-							break
-						else:
-							send_message(sock, CLIENT_RETRY_AUTH)
+						send_message(sock, CLIENT_RETRY_AUTH)
 
 		# Command Response
 		while True:

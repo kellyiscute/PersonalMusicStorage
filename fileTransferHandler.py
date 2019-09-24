@@ -19,6 +19,12 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 		recv_read_seek += 1
 	filename = filename.decode()
 	print(f'filename: {filename}')
+	if os.path.isfile(filename):
+		sock.send(b'override?')
+		recv_data = sock.recv(1)
+		if recv_data[0] == 0:
+			sock.send(b'cancel')
+			return
 	# read file_size (Int64)
 	recv_read_seek += 1
 	file_size: Union[bytearray, int] = bytearray()
