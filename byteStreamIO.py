@@ -27,11 +27,11 @@ class BytesStreamReader:
 
 		return result
 
-	def read_str(self, length: int) -> str:
-		b = self.read_bytes(length)
+	def read_str(self, length: int, encoding = 'utf-8') -> str:
+		b = self.read_bytes(length).decode('utf-8', 'ignore')
 		if b.__len__() < length:
 			raise IndexOverflowException('Index overflow')
-		return b.decode()
+		return b
 
 	def read_str_until_char_appear(self, char: str, include=False, seek_back=False):
 		result = ''
@@ -48,7 +48,7 @@ class BytesStreamReader:
 		return result
 
 	def read_int(self, int_type: int, byte_order='little') -> int:
-		b = self.read_bytes(int(int_type / 2))
+		b = self.read_bytes(int(int_type / 8))
 		return int.from_bytes(b, byte_order)
 
 	def read_bool(self) -> bool:

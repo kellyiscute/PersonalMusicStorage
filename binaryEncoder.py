@@ -66,7 +66,7 @@ def encode_fileinfo(fi: Union[dbMan.FileInfo, List[dbMan.FileInfo]]) -> bytes:
 		r.append(3)
 		return bytes(r)
 
-	elif type(fi) == list and type(fi[0]) == dbMan.FileInfo:
+	elif type(fi) == list:
 		result: bytearray = bytearray()
 		for f in fi:
 			result.extend(encode_fileinfo_element(f))

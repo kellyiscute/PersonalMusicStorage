@@ -6,26 +6,28 @@ import rsa
 import typing
 import dbMan
 import binaryEncoder
+import fileTransfer
 from typing import Union
 
 
 dispatcher_server_public_key: Union[rsa.PublicKey, None] = None
 
 # CONSTANTS
-NULL_RESPONSE = bytes((0,))
-WHO_ARE_YOU = bytes((1,))
-DISPATCHER_SERVER_CONN = bytes((2,))  # Should be signed
-CLIENT_CONNECTION = bytes((3,))
-AUTHED_CLIENT = bytes((4,))
-UNAUTHED_CLIENT = bytes((5,))
-CLIENT_AUTH = bytes((6,))
-CLIENT_RETRY_AUTH = bytes((7,))
-AUTH_BANNED = bytes((103,))
-AUTH_CANCEL = bytes((9,))
-AUTH_COMPLETE = bytes((202,))  # Http response 202 Accepted
-ACCESS_DENIED = bytes((101,))
-LIST_FILE = bytes((10,))
-UPLOAD_FILE = bytes((11,))
+NULL_RESPONSE = b'\x00'
+WHO_ARE_YOU = b'\x01'
+DISPATCHER_SERVER_CONN = b'\x02'  # Should be signed
+CLIENT_CONNECTION = b'\x03'
+AUTHED_CLIENT = b'\x04'
+UNAUTHED_CLIENT = b'\x05'
+CLIENT_AUTH = b'\x06'
+CLIENT_RETRY_AUTH = b'\x07'
+AUTH_BANNED = b'\x67'
+AUTH_CANCEL = b'\x09'
+AUTH_COMPLETE = b'\xCA'  # Http response 202 Accepted
+ACCESS_DENIED = b'\x65'
+LIST_FILE = b'\x0A'
+UPLOAD_FILE = b'\x0B'
+FILE_SIZE = b'\x0C'
 
 
 def verify_dispatcher_server(sig) -> bool:
@@ -129,10 +131,12 @@ class ClientHandler:
 			if len(recv) == 1:
 				if recv == AUTH_CANCEL:
 					conn_type = UNAUTHED_CLIENT
+					send_message(sock, UNAUTHED_CLIENT)
 					break
 			else:
 				if self.verify_client_password(recv):
 					conn_type = AUTHED_CLIENT
+					send_message(sock,AUTH_COMPLETE)
 					break
 				else:
 					password_retries += 1
@@ -149,6 +153,11 @@ class ClientHandler:
 		while True:
 			# Wait for command
 			recv = sock.recv(10240)
+
+			# Test if connection closed
+			if len(recv) == 0:
+				sock.close()
+				return
 
 			# request file list  All clients has permission if shareLib is on
 			if recv == LIST_FILE:
@@ -170,8 +179,7 @@ class ClientHandler:
 			elif recv == UPLOAD_FILE:
 				# only authorized client has permission
 				if conn_type == AUTHED_CLIENT:
-
-					pass
+					fileTransfer.recv(sock, self.config.privateKey)
 				else:
 					send_message(sock, ACCESS_DENIED)
 
