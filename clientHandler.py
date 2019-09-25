@@ -9,7 +9,6 @@ import binaryEncoder
 import fileTransfer
 from typing import Union
 
-
 dispatcher_server_public_key: Union[rsa.PublicKey, None] = None
 
 # CONSTANTS
@@ -136,7 +135,7 @@ class ClientHandler:
 			else:
 				if self.verify_client_password(recv):
 					conn_type = AUTHED_CLIENT
-					send_message(sock,AUTH_COMPLETE)
+					send_message(sock, AUTH_COMPLETE)
 					break
 				else:
 					password_retries += 1
@@ -179,7 +178,10 @@ class ClientHandler:
 			elif recv == UPLOAD_FILE:
 				# only authorized client has permission
 				if conn_type == AUTHED_CLIENT:
-					fileTransfer.recv(sock, self.config.privateKey)
+					try:
+						fileTransfer.recv(sock, self.config.privateKey)
+					except Exception:
+						return
 				else:
 					send_message(sock, ACCESS_DENIED)
 

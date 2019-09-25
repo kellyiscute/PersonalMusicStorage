@@ -3,6 +3,7 @@ import rsa
 import time
 import os
 import byteStreamIO
+import hashlib
 from typing import Union
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -63,8 +64,19 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 		file.flush()
 		write_counter += len(recv_bin)
 	file.close()
+	sock.send(b'md5')
 	# check transfer
-	if sock.recv(1) != b'\xFF':
+	md5_checksum = hashlib.md5()
+	file = open(filename, 'rb')
+	while True:
+		data = file.read(1024**2)
+		if not data:
+			break
+		md5_checksum.update(data)
+	file.close()
+	md5 = md5_checksum.digest()
+	r = sock.recv(1024)
+	if r != md5:
 		# Tell client transfer failed
 		sock.send(b'\xFE')
 		sock.close()
