@@ -29,7 +29,7 @@ class BytesStreamReader:
 
 	def read_str(self, length: int, encoding = 'utf-8') -> str:
 		b = self.read_bytes(length).decode('utf-8', 'ignore')
-		if b.__len__() < length:
+		if b.encode('utf-8').__len__() < length:
 			raise IndexOverflowException('Index overflow')
 		return b
 
@@ -72,7 +72,7 @@ class BytesStreamWriter:
 		self.baseByteArray.extend(b)
 
 	def write_str(self, s: str, end=''):
-		b = str.encode(s+end)
+		b = str.encode(s+end, 'utf-8')
 		self.baseByteArray.extend(b)
 
 	def write_bool(self, b: bool):

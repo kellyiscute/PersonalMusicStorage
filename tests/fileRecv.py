@@ -7,7 +7,7 @@ import byteStreamIO
 import hashlib
 
 if __name__ == '__main__':
-	f = 'G:\CloudMusic\Aimer - broKen NIGHT.flac'
+	f = 'G:\CloudMusic\Akie秋绘 - Lemon（Cover：米津玄師）.mp3'
 	publicKey: rsa.PublicKey
 	with open('publicKey.pem', 'rb') as pk:
 		publicKey = rsa.PublicKey.load_pkcs1(pk.read())
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 	filename = f
 	filesize = os.path.getsize(filename)
 	filename = os.path.basename(filename)
-	w.write_int(len(filename), 64)
+	w.write_int(len(filename.encode('utf-8')), 64)
 	w.write_str(filename)
 	w.write_int(filesize, 64)
 	header = w.baseByteArray
@@ -28,7 +28,7 @@ if __name__ == '__main__':
 	aes_iv = rsa.encrypt(aes.iv, publicKey)
 
 	sock = socket.socket()
-	sock.connect(('localhost', 6746))
+	sock.connect(('kellyiscute.com', 6746))
 	print(sock.recv(1)[0])
 	sock.send(b'\x03')
 	print(sock.recv(1)[0])
