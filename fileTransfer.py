@@ -49,7 +49,7 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 		return
 	# request block send
 	sock.send(b'block')
-	block_size = 1024 ** 3
+	block_size = 1024 ** 2
 	write_counter = 0
 	recv_bin = b''
 	while write_counter < file_size:
