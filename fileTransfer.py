@@ -1,10 +1,8 @@
 import socket
 import rsa
-import time
 import os
 import byteStreamIO
 import hashlib
-from typing import Union
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
@@ -84,3 +82,7 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 		os.remove(filename)
 	else:
 		sock.send(b'\xFF')
+
+
+def send(file_path: str):
+	pass

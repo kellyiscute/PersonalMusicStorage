@@ -7,7 +7,7 @@ import byteStreamIO
 import hashlib
 
 if __name__ == '__main__':
-	f = 'G:\CloudMusic\Akie秋绘 - Lemon（Cover：米津玄師）.mp3'
+	f = 'G:\CloudMusic\Aimer - Re-pray.flac'
 	publicKey: rsa.PublicKey
 	with open('publicKey.pem', 'rb') as pk:
 		publicKey = rsa.PublicKey.load_pkcs1(pk.read())
@@ -28,7 +28,7 @@ if __name__ == '__main__':
 	aes_iv = rsa.encrypt(aes.iv, publicKey)
 
 	sock = socket.socket()
-	sock.connect(('kellyiscute.com', 6746))
+	sock.connect(('localhost', 6746))
 	print(sock.recv(1)[0])
 	sock.send(b'\x03')
 	print(sock.recv(1)[0])
@@ -46,7 +46,9 @@ if __name__ == '__main__':
 	recv = sock.recv(1024)
 	if recv.decode() == 'override?':
 		sock.send(b'\x01')
-	print(sock.recv(1024).decode())
+		print(sock.recv(1024).decode())
+	else:
+		print(recv.decode())
 	block_size = 1024 ** 2
 	send_count = 0
 	file = open(f, 'rb')
@@ -60,7 +62,7 @@ if __name__ == '__main__':
 	file = open(f, 'rb')
 	md5_checksum = hashlib.md5()
 	while True:
-		data = file.read(1024**2)
+		data = file.read(1024 ** 2)
 		if not data:
 			break
 		md5_checksum.update(data)
