@@ -43,7 +43,7 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 	# open file for writing
 	try:
 		file = open(filename, 'wb')
-	except:
+	except Exception:
 		sock.send(b'err')
 		return
 	# request block send
@@ -84,5 +84,9 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 		sock.send(b'\xFF')
 
 
-def send(file_path: str):
-	pass
+def send(sock: socket.socket):
+	sock.send(b'header_len?')
+	header_len = sock.recv(8)
+
+	if not os.path.isfile(file_path):
+		pass
