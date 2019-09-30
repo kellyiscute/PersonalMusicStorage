@@ -67,7 +67,7 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 	md5_checksum = hashlib.md5()
 	file = open(filename, 'rb')
 	while True:
-		data = file.read(1024**2)
+		data = file.read(1024 ** 2)
 		if not data:
 			break
 		md5_checksum.update(data)
@@ -84,9 +84,41 @@ def recv(sock: socket.socket, priv: rsa.PrivateKey):
 		sock.send(b'\xFF')
 
 
-def send(sock: socket.socket):
-	sock.send(b'header_len?')
-	header_len = sock.recv(8)
-
+def send(sock: socket.socket, pub: rsa.PublicKey):
+	sock.send(b'file')
+	file_path = sock.recv(10240).decode('utf-8')
 	if not os.path.isfile(file_path):
-		pass
+		sock.send(b'err')
+	file_size = os.path.getsize(file_path)
+	sock.send(file_size.to_bytes(8, 'little'))
+	r = sock.recv(8)
+	if len(r) == 0 or r != b'key':
+		return
+	aes_key = get_random_bytes(32)
+	aes = AES.new(aes_key, AES.MODE_CFB)
+	sock.send(rsa.encrypt(aes_key, pub))
+	r = sock.recv(1024)
+	if len(r) == 0 or r != b'iv':
+		return
+	sock.send(rsa.encrypt(aes.iv, pub))
+	r = sock.recv(1024)
+	if len(r) == 0 or r != b'block':
+		return
+	file = open(file_path, 'rb')
+	send_count = 0
+	block_size = 1024 ** 2
+	while send_count < file_size:
+		sock.send(aes.encrypt(file.read(block_size)))
+	file.seek(0)
+	md5 = hashlib.md5()
+	while True:
+		data = file.read(1024 ** 2)
+		if not data:
+			break
+		md5.update(data)
+	md5 = md5.digest()
+	file.close()
+	r = sock.recv(1024)
+	if len(r) == 0 or r != b'md5':
+		return
+	sock.send(md5)
