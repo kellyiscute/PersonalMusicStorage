@@ -92,8 +92,10 @@ class Config:
 			if 'Password Retries' in conf['FAIL2BAN']:
 				self.fail2ban = int(conf['FAIL2BAN']['Password Retries'])
 		# Load other values
-		if conf['DEFAULT']['ShareLib'] == 'True' or conf['DEFAULT']['ShareLib'] == 'False':
-			self.shareLib = bool(conf['DEFAULT']['ShareLib'])
+		if conf['DEFAULT']['ShareLib'] == 'True':
+			self.shareLib = True
+		elif conf['DEFAULT']['ShareLib'] == 'False':
+			self.shareLib = False
 		else:
 			raise Exception('Invalid value for "ShareLib"')
 		if str(conf['DEFAULT']['Port']).isdigit() and int(conf['DEFAULT']['Port']) > 0 and int(

@@ -97,6 +97,11 @@ class ClientHandler:
 		"""
 		password_retries = 0
 		conn_type = 0
+		# Check if banned
+		if remote_addr in self.banned_ip:
+			send_message(sock, AUTH_BANNED)
+			sock.close()
+			return
 		# Ask for connection type
 		send_message(sock, WHO_ARE_YOU)
 		recv = sock.recv(1024)
@@ -112,6 +117,10 @@ class ClientHandler:
 			conn_type = CLIENT_CONNECTION
 		elif len(recv) == 0:
 			# Connection closed
+			sock.close()
+			return
+		else:
+			send_message(sock, ACCESS_DENIED)
 			sock.close()
 			return
 
@@ -132,6 +141,8 @@ class ClientHandler:
 					conn_type = UNAUTHED_CLIENT
 					send_message(sock, UNAUTHED_CLIENT)
 					break
+				else:
+					sock.close()
 			else:
 				if self.verify_client_password(recv):
 					conn_type = AUTHED_CLIENT
@@ -144,7 +155,7 @@ class ClientHandler:
 						self.banned_ip.append(remote_addr)
 						send_message(sock, AUTH_BANNED)
 						sock.close()
-						break
+						return
 					else:
 						send_message(sock, CLIENT_RETRY_AUTH)
 
